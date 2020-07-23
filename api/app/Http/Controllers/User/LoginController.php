@@ -4,77 +4,72 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
-use App\Model\Reg;
+use App\Reg;
 use Illuminate\Support\Str;
-use App\Model\Token;
+use Illuminate\Support\Facades\Redis;
 class LoginController extends Controller
 {
-    function Login(){
-             $reg=new Reg();
-//           $Tonke=new Tonke();
-            $username=Request()->post('username','');
-            $pass=Request()->post('pass','');
-            $arr=$reg->where('username',$username)->first();
+    function login()
+    {
+        $reg = new Reg();
+        $user_name = request()->post('user_name', '');
+        $password = request()->post('password', '');
+        $arr = $reg->where('user_name', $user_name)->first();
+        if (!empty($arr)) {
+            if ($arr['password'] == $password) {
+                $token = Str::random(32);
+                if (Redis::get('token')) {
+                    $count = Redis::incr('count');
+                    Redis::expire('count', 60);
+                    if ($count > 10) {
+                        $response = [
+                            'error' => 300001,
+                            'msg' => '访问次数过多',
+                        ];
+                        Redis::sadd('black_token', $token);
+                        return $response;
+                    } else {
+                        $response = [
+                            'error' => 0,
+                            'msg' => '登录成功1',
+                            'data' => [
+                                'token' => $token
+                            ]
+                        ];
+                        Redis::set('token', $token);
+                        Redis::set('user_id', $arr['user_id']);
+                        Redis::incr('count');
+                        Redis::expire('count', 60);
+                        return $response;
+                    }
+                }
 
-
-        if(!empty($arr)){
-            if($arr['pass']==$pass){
-
-                $response=[
-                    'error'=>0,
-                    'msg'=>'ok'
+                Redis::set('token', $token);
+                Redis::set('user_id', $arr['user_id']);
+                Redis::incr('count');
+                Redis::expire('count', 60);
+                $response = [
+                    'error' => 0,
+                    'msg' => '登录成功2',
+                    'data' => [
+                        'token' => $token
+                    ]
                 ];
-                $token=Str::random(32);
-                $date=[
-                    'token'=>$token
-                ];
-                Token::insert($date);
-        return $response;
-
-//                $reg->pass=Request()->post('pass','');
-//                $Tonke->tonk=request()->post('tonke');
-
-            }
-            else{
+                return $response;
+            } else {
                 $response = [
                     'error' => 50004,
                     'msg' => '密码错误'
                 ];
                 print_r($response);
             }
-
-        }else{
-                $response=[
-                    'error'=>50003,
-                    'msg'=>'没有此用户'
-                ];
-                print_r($response);
-            }
-
-        }
-    function centel(){
-       $token=request()->get('token');
-        if(empty($token)){
-            $date=[
-                'error'=>50001,
-                'msg'=>"未授权"
+        } else {
+            $response = [
+                'error' => 50003,
+                'msg' => '没有此用户'
             ];
-            return $date;
+            print_r($response);
         }
-        $Token=new token();
-        $arr=$Token->where('token',$token)->first();
-        if($arr['token']==$token){
-            $date=[
-                'error'=>0,
-                'msg'=>"欢迎进入个人中心"
-            ];
-            return $date;
-        }
-    }
-    public function kkk(){
-        phpinfo();
-    }
-    }
 
-
+    }
+}

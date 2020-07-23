@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Reg;
 
@@ -34,5 +33,4 @@ class RegController extends Controller
             echo 'ok';
         }
     }
-
 }
